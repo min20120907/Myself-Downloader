@@ -1,6 +1,5 @@
 import os
 import requests
-import subprocess
 import multiprocessing
 
 headers = {
@@ -19,28 +18,35 @@ headers = {
 }
 
 def download_and_convert(file_name):
-    url = f"https://vpx08.myself-bbs.com/vpx/43563/{file_name}" # Please change 43563 to your target anime
+    directory = "/home/e677/Videos"
+    file_path = os.path.join(directory, file_name)
+
+    # Download the file
+    url = f"https://vpx08.myself-bbs.com/vpx/43563/{file_name}"
     print(f"Downloading {url}")
     r = requests.get(url, headers=headers, stream=True)
-    with open(file_name, 'wb') as f:
+    with open(file_path, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
-    output_file = file_name.replace(".ts", ".mp4")
-    command = f"ffmpeg -i {file_name} -c copy {output_file}"
-    subprocess.call(command, shell=True)
-    os.remove(file_name)
 
-if __name__ == "__main__":
-    # Create a list of file names to download and convert
+    # Convert the file to mp4
+    print(f"Converting {file_path} to mp4")
+    os.system(f"ffmpeg -i {file_path} -c:v copy -c:a copy {os.path.splitext(file_path)[0]}.mp4")
+
+    # Remove the original ts file
+    os.remove(file_path)
+
+if __name__ == '__main__':
     file_names = []
     for i in range(1, 14):
-        for j in range(0, 4):
-            file_name = f"{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
-            file_names.append(file_name)
+        for j in range(0, 146):
+            file_name = f"720p_{str(j).zfill(3)}.ts"
+            file_names.append(f"s{i}e{j+1}.mp4")
+            download_and_convert(file_name)
 
     # Create a pool of worker processes to download and convert the files
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(os.cpu_count()) as pool:
         pool.map(download_and_convert, file_names)
 
     # Rename and move the output files to the destination directory
