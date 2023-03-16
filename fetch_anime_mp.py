@@ -1,7 +1,9 @@
 import os
 import requests
+import re
 from multiprocessing import Pool, cpu_count
-
+import subprocess
+import argparse
 headers = {
     'accept': '*/*',
     'accept-encoding': 'gzip, deflate, br',
@@ -17,6 +19,25 @@ headers = {
     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
 }
 
+
+# Create an ArgumentParser object
+parser = argparse.ArgumentParser()
+
+# Add an argument named "bangumi", "episodes", "season"
+parser.add_argument('--bangumi', help='Specify the number of the bangumi')
+parser.add_argument('--episodes', help='Specify the number of the episodes')
+parser.add_argument('--season', help='Specify the number of the season')
+parser.add_argument('--output-dir', help='Specify the output directory(without final slash!)')
+parser.add_argument('--threads', help='Specify the threads parallelly')
+# Parse the command-line arguments
+args = parser.parse_args()
+
+# Access the value of the "bangumi" argument
+if args.bangumi:
+    print('The specified bangumi is:', args.bangumi)
+else:
+    print('No bangumi was specified')
+
 def download_file(url, file_path):
     print(f"Downloading {url}")
     r = requests.get(url, headers=headers, stream=True)
@@ -26,41 +47,61 @@ def download_file(url, file_path):
                 f.write(chunk)
 
 def download_files(files):
-    pool = Pool()  # Use all available CPU cores
+    pool = Pool(int(args.threads))  # Use all available CPU cores
     for url, file_path in files:
         pool.apply_async(download_file, args=(url, file_path))
     pool.close()
     pool.join()
 
 if __name__ == '__main__':
+    
+
     files = []
-    for i in range(1, 14):
-        for j in range(0, 146):
+    for i in range(1, int(args.episodes)):
+        url = f"https://vpx06.myself-bbs.com/vpx/{args.bangumi}/{str(i).zfill(3)}_v01/720p.m3u8"
+        response = requests.get(url, headers=headers)
+        filenames = [line.strip() for line in response.text.split('\n') if line.endswith('.ts')]
+        numbers = [int(re.findall(r'\d+', filename)[0]) for filename in filenames]
+        max_number = max(numbers)
+        for j in range(0, max_number):
+            # parts of each episode
             file_name = f"{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
-            directory = f"/home/e677/Videos/{str(i).zfill(3)}_v01"
+            directory = f"{args.output_dir}/{str(i).zfill(3)}_v01"
             os.makedirs(directory, exist_ok=True)  # Create directory if it doesn't exist
             file_path = os.path.join(directory, f"720p_{str(j).zfill(3)}.ts")
-            url = f"https://vpx08.myself-bbs.com/vpx/43563/{file_name}"
+            url = f"https://vpx08.myself-bbs.com/vpx/{args.bangumi}/{file_name}"
             files.append((url, file_path))
     download_files(files)
 
-    import subprocess
+
 
     # Merge the .ts files into individual .mp4 files
-    directory = "/home/e677/Videos/"
-    output_file_prefix = "s1e"
-    for i in range(1, 14):
+    directory = args.output_dir
+    output_file_prefix = "s{args.season}e"
+    for i in range(1, int(args.episodes)):
         ts_files = ""
-        for j in range(0, 146):
-            ts_files += f"{directory}{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts|"
+        url = f"https://vpx06.myself-bbs.com/vpx/{args.bangumi}/{str(i).zfill(3)}_v01/720p.m3u8"
+        response = requests.get(url, headers=headers)
+        filenames = [line.strip() for line in response.text.split('\n') if line.endswith('.ts')]
+        numbers = [int(re.findall(r'\d+', filename)[0]) for filename in filenames]
+        max_number = max(numbers)
+        for j in range(0, max_number):
+            ts_files += f"{directory}/{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts|"
         ts_files = ts_files[:-1]  # Remove the last pipe symbol
         output_file = f"{output_file_prefix}{i}.mp4"
-        command = f"ffmpeg -i \"concat:{ts_files}\" -c copy {directory}{output_file}"
+        command = f"ffmpeg -i \"concat:{ts_files}\" -c copy {directory}/{output_file}"
         subprocess.call(command, shell=True)
 
     # Remove the .ts files
     # Remove the .ts files
-    for i in range(1, 14):
-        for j in range(0, 146):
-            file_path = f"{directory}{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
+    for i in range(1, int(args.episodes)):
+        url = f"https://vpx06.myself-bbs.com/vpx/{args.bangumi}/{str(i).zfill(3)}_v01/720p.m3u8"
+        response = requests.get(url, headers=headers)
+        filenames = [line.strip() for line in response.text.split('\n') if line.endswith('.ts')]
+        numbers = [int(re.findall(r'\d+', filename)[0]) for filename in filenames]
+        max_number = max(numbers)
+        for j in range(0, max_number):
+            file_path = f"{directory}/{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
             os.remove(file_path)
+            folder_path = f"{directory}/{str(i).zfill(3)}_v01/"
+            os.remove(folder_path)
