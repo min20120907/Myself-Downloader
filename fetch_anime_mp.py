@@ -1,6 +1,6 @@
 import os
 import requests
-import multiprocessing
+from multiprocessing import Pool, cpu_count
 
 headers = {
     'accept': '*/*',
@@ -17,12 +17,7 @@ headers = {
     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
 }
 
-def download_and_convert(file_name):
-    directory = "/home/e677/Videos"
-    file_path = os.path.join(directory, file_name)
-
-    # Download the file
-    url = f"https://vpx08.myself-bbs.com/vpx/43563/{file_name}"
+def download_file(url, file_path):
     print(f"Downloading {url}")
     r = requests.get(url, headers=headers, stream=True)
     with open(file_path, 'wb') as f:
@@ -30,29 +25,42 @@ def download_and_convert(file_name):
             if chunk:
                 f.write(chunk)
 
-    # Convert the file to mp4
-    print(f"Converting {file_path} to mp4")
-    os.system(f"ffmpeg -i {file_path} -c:v copy -c:a copy {os.path.splitext(file_path)[0]}.mp4")
-
-    # Remove the original ts file
-    os.remove(file_path)
+def download_files(files):
+    pool = Pool()  # Use all available CPU cores
+    for url, file_path in files:
+        pool.apply_async(download_file, args=(url, file_path))
+    pool.close()
+    pool.join()
 
 if __name__ == '__main__':
-    file_names = []
+    files = []
     for i in range(1, 14):
         for j in range(0, 146):
-            file_name = f"720p_{str(j).zfill(3)}.ts"
-            file_names.append(f"s{i}e{j+1}.mp4")
-            download_and_convert(file_name)
+            file_name = f"{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
+            directory = f"/home/e677/Videos/{str(i).zfill(3)}_v01"
+            os.makedirs(directory, exist_ok=True)  # Create directory if it doesn't exist
+            file_path = os.path.join(directory, f"720p_{str(j).zfill(3)}.ts")
+            url = f"https://vpx08.myself-bbs.com/vpx/43563/{file_name}"
+            files.append((url, file_path))
+    download_files(files)
 
-    # Create a pool of worker processes to download and convert the files
-    with multiprocessing.Pool(os.cpu_count()) as pool:
-        pool.map(download_and_convert, file_names)
+    import subprocess
 
-    # Rename and move the output files to the destination directory
+    # Merge the .ts files into individual .mp4 files
     directory = "/home/e677/Videos/"
     output_file_prefix = "s1e"
     for i in range(1, 14):
-        input_file = f"{output_file_prefix}{i}_0001.mp4"
+        ts_files = ""
+        for j in range(0, 146):
+            ts_files += f"{directory}{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts|"
+        ts_files = ts_files[:-1]  # Remove the last pipe symbol
         output_file = f"{output_file_prefix}{i}.mp4"
-        os.rename(input_file, f"{directory}{output_file}")
+        command = f"ffmpeg -i \"concat:{ts_files}\" -c copy {directory}{output_file}"
+        subprocess.call(command, shell=True)
+
+    # Remove the .ts files
+    # Remove the .ts files
+    for i in range(1, 14):
+        for j in range(0, 146):
+            file_path = f"{directory}{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
+            os.remove(file_path)
