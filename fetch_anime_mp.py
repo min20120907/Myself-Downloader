@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     # Merge the .ts files into individual .mp4 files
     directory = args.output_dir
-    output_file_prefix = "s{args.season}e"
+    output_file_prefix = f"s{args.season}e"
     for i in range(1, int(args.episodes)):
         ts_files = ""
         url = f"https://vpx06.myself-bbs.com/vpx/{args.bangumi}/{str(i).zfill(3)}_v01/720p.m3u8"
@@ -92,8 +92,8 @@ if __name__ == '__main__':
         command = f"ffmpeg -i \"concat:{ts_files}\" -c copy {directory}/{output_file}"
         subprocess.call(command, shell=True)
 
-    # Remove the .ts files
-    # Remove the .ts files
+    
+    # Remove the .ts files and folders
     for i in range(1, int(args.episodes)):
         url = f"https://vpx06.myself-bbs.com/vpx/{args.bangumi}/{str(i).zfill(3)}_v01/720p.m3u8"
         response = requests.get(url, headers=headers)
