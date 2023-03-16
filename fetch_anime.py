@@ -29,3 +29,22 @@ for i in range(1, 14):
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
+import subprocess
+
+# Merge the .ts files into individual .mp4 files
+directory = "/home/e677/Videos/"
+output_file_prefix = "s1e"
+for i in range(1, 14):
+    ts_files = ""
+    for j in range(0, 4):
+        ts_files += f"{directory}{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts|"
+    ts_files = ts_files[:-1]  # Remove the last pipe symbol
+    output_file = f"{output_file_prefix}{i}.mp4"
+    command = f"ffmpeg -i \"concat:{ts_files}\" -c copy {directory}{output_file}"
+    subprocess.call(command, shell=True)
+
+# Remove the .ts files
+for i in range(1, 14):
+    for j in range(0, 4):
+        file_path = f"{directory}{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
+        os.remove(file_path)
