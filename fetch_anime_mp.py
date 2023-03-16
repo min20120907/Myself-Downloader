@@ -104,4 +104,4 @@ if __name__ == '__main__':
             file_path = f"{directory}/{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
             os.remove(file_path)
             folder_path = f"{directory}/{str(i).zfill(3)}_v01/"
-            os.remove(folder_path)
+            os.rmdir(folder_path)
