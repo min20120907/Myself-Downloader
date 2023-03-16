@@ -89,11 +89,11 @@ if __name__ == '__main__':
             ts_files += f"{directory}/{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts|"
         ts_files = ts_files[:-1]  # Remove the last pipe symbol
         output_file = f"{output_file_prefix}{i}.mp4"
-        command = f"ffmpeg -i \"concat:{ts_files}\" -c copy {directory}/{output_file}"
+        command = f"ffmpeg -probesize 5000000 -analyzeduration 5000000 -start_at_zero -copyts -i \"concat:{ts_files}\" -c copy {directory}/{output_file}"
         subprocess.call(command, shell=True)
 
-    
-    # Remove the .ts files and folders
+    # Remove the .ts files
+    # Remove the .ts files
     for i in range(1, int(args.episodes)):
         url = f"https://vpx06.myself-bbs.com/vpx/{args.bangumi}/{str(i).zfill(3)}_v01/720p.m3u8"
         response = requests.get(url, headers=headers)
