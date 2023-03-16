@@ -17,7 +17,7 @@ headers = {
 }
 
 for i in range(1, 14):
-    for j in range(1, 4):
+    for j in range(0, 4):
         file_name = f"{str(i).zfill(3)}_v01/720p_{str(j).zfill(3)}.ts"
         directory = f"/home/e677/Videos/{str(i).zfill(3)}_v01"
         os.makedirs(directory, exist_ok=True)  # Create directory if it doesn't exist
